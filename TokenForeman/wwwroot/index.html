@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en" class="h-full bg-slate-950">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="TokenForeman" />
+  <meta name="description" content="Construction command center for authenticated field actions." />
+  <title>TokenForeman | Field Command Center</title>
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" href="/icons/favicon.ico" />
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+  <link rel="stylesheet" href="/css/app.css" />
+  <script>
+    tailwind = {
+      config: {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif']
+            },
+            boxShadow: {
+              glow: '0 0 0 1px rgba(245, 158, 11, 0.12), 0 18px 48px rgba(245, 158, 11, 0.10)'
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.auth0.com/js/auth0-spa-js/2.1/auth0-spa-js.production.js"></script>
+  <script src="/config.js"></script>
+</head>
+<body class="min-h-screen text-slate-100 antialiased">
+  <div class="soft-grid min-h-screen">
+    <header class="border-b border-white/5 bg-slate-950/55 backdrop-blur-xl">
+      <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
+        <div class="flex items-center gap-3">
+          <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 via-orange-500 to-blue-500 font-black text-slate-950 shadow-glow">TF</div>
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.28em] text-amber-300/90">TokenForeman</p>
+            <h1 class="text-lg font-semibold text-white">Field Command Center</h1>
+          </div>
+        </div>
+        <div class="flex flex-wrap items-center justify-end gap-3">
+          <div id="auth-badge" class="badge badge-offline"><span class="status-dot"></span><span>Signed out</span></div>
+          <button id="install-button" class="btn-secondary hidden rounded-full px-4 py-2 text-sm font-semibold transition">Install PWA</button>
+          <button id="login-button" class="btn-primary rounded-full px-4 py-2 text-sm font-semibold transition">Sign in with Auth0</button>
+          <button id="logout-button" class="btn-danger hidden rounded-full px-4 py-2 text-sm font-semibold transition">Sign out</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <section class="hero-accent surface mb-8 rounded-3xl p-6 lg:p-8">
+        <div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div class="max-w-3xl space-y-4">
+            <div class="flex flex-wrap gap-2">
+              <span class="hero-chip badge text-slate-200"><span class="status-dot text-emerald-400"></span><span>Auth0 protected</span></span>
+              <span class="hero-chip badge text-slate-200"><span class="status-dot text-amber-400"></span><span>PWA ready</span></span>
+              <span class="hero-chip badge text-slate-200"><span class="status-dot text-blue-400"></span><span>Construction workflows</span></span>
+            </div>
+            <h2 class="text-3xl font-bold tracking-tight text-white sm:text-4xl">Create field actions by voice, photo, or text.</h2>
+            <p class="max-w-2xl text-base leading-7 text-slate-300 sm:text-lg">Use Universal Login, capture site photos, dictate notes with the Web Speech API, and submit authenticated commands to the Foreman API for Calendar, Slack, and Procore automation.</p>
+          </div>
+          <div class="grid gap-3 sm:grid-cols-2 lg:w-[28rem] lg:grid-cols-1">
+            <div class="hero-chip rounded-2xl px-4 py-3">
+              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Connection</p>
+              <p id="auth-note" class="mt-1 text-sm font-medium text-slate-100">Sign in with Auth0 Universal Login to enable protected actions.</p>
+            </div>
+            <div class="hero-chip rounded-2xl px-4 py-3">
+              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Last update</p>
+              <p id="last-updated" class="mt-1 text-sm font-medium text-slate-100">Waiting for your first command.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="grid gap-6 lg:grid-cols-[1.12fr_0.88fr]">
+        <section class="space-y-6">
+          <form id="command-form" class="surface rounded-3xl p-5 sm:p-6 lg:p-7">
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-amber-300/90">New field action</p>
+                <h3 class="mt-1 text-2xl font-semibold text-white">Tell Foreman what to do</h3>
+              </div>
+              <button id="submit-button" type="submit" class="btn-primary rounded-full px-5 py-3 text-sm font-bold transition">Send command</button>
+            </div>
+
+            <div class="mt-6 space-y-5">
+              <div>
+                <label class="field-label" for="query-input">Command text</label>
+                <textarea id="query-input" rows="7" class="field-input mt-2 p-4 text-base leading-7" placeholder="Example: Schedule a subcontractor kickoff meeting next Tuesday and notify the crew in Slack."></textarea>
+              </div>
+
+              <div class="grid gap-4 md:grid-cols-2">
+                <div class="surface-strong rounded-3xl p-4">
+                  <div class="flex items-center justify-between gap-3">
+                    <div>
+                      <p class="field-label">Voice input</p>
+                      <p id="voice-status" class="mt-1 text-sm text-slate-400">Tap to dictate a command.</p>
+                    </div>
+                    <button id="voice-button" type="button" class="btn-secondary rounded-full px-4 py-2 text-sm font-semibold transition">Start voice</button>
+                  </div>
+                </div>
+
+                <div class="surface-strong rounded-3xl p-4">
+                  <div class="flex items-center justify-between gap-3">
+                    <div>
+                      <p class="field-label">Site context</p>
+                      <p id="camera-status" class="mt-1 text-sm text-slate-400">Use the camera or upload photos from the jobsite.</p>
+                    </div>
+                    <span id="camera-count" class="badge badge-offline"><span class="status-dot"></span><span>0 attached photos</span></span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="grid gap-4 xl:grid-cols-[1fr_1fr]">
+                <div class="surface-strong rounded-3xl p-4">
+                  <div class="flex items-center justify-between gap-3">
+                    <div>
+                      <p class="field-label">Live camera</p>
+                      <p class="mt-1 text-sm text-slate-400">Open the camera, capture a frame, and attach it for reference.</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                      <button id="camera-start" type="button" class="btn-secondary rounded-full px-3 py-2 text-xs font-semibold transition">Start</button>
+                      <button id="camera-capture" type="button" class="btn-secondary rounded-full px-3 py-2 text-xs font-semibold transition">Capture</button>
+                      <button id="camera-stop" type="button" class="btn-secondary rounded-full px-3 py-2 text-xs font-semibold transition">Stop</button>
+                    </div>
+                  </div>
+                  <div class="camera-frame mt-4 overflow-hidden rounded-3xl">
+                    <video id="camera-video" class="h-64 w-full object-cover" playsinline muted></video>
+                    <canvas id="camera-canvas" class="hidden"></canvas>
+                  </div>
+                </div>
+
+                <div class="surface-strong rounded-3xl p-4">
+                  <div class="flex items-center justify-between gap-3">
+                    <div>
+                      <p class="field-label">Photo upload</p>
+                      <p class="mt-1 text-sm text-slate-400">Upload site photos from your device gallery.</p>
+                    </div>
+                    <button id="clear-photos" type="button" class="btn-secondary rounded-full px-3 py-2 text-xs font-semibold transition">Clear photos</button>
+                  </div>
+                  <input id="camera-file" type="file" accept="image/*" capture="environment" multiple class="field-input mt-4 px-4 py-3 text-sm" />
+                  <div id="photo-gallery" class="mt-4 grid gap-3 sm:grid-cols-2"></div>
+                </div>
+              </div>
+            </div>
+          </form>
+
+          <div class="surface rounded-3xl p-5 sm:p-6 lg:p-7">
+            <div class="flex items-center justify-between gap-4">
+              <div>
+                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-amber-300/90">Operational notes</p>
+                <h3 class="mt-1 text-2xl font-semibold text-white">Quick prompts for the crew</h3>
+              </div>
+            </div>
+            <div class="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              <button type="button" class="hero-chip rounded-2xl px-4 py-4 text-left transition hover:border-amber-400/40" data-template="Schedule a foreman sync at 7 AM tomorrow and post the invite in Slack.">
+                <p class="font-semibold text-slate-100">Morning sync</p>
+                <p class="mt-1 text-sm text-slate-400">Schedule a foreman sync and notify Slack.</p>
+              </button>
+              <button type="button" class="hero-chip rounded-2xl px-4 py-4 text-left transition hover:border-amber-400/40" data-template="Create an RFI for the stair opening detail and route it to Procore.">
+                <p class="font-semibold text-slate-100">RFI review</p>
+                <p class="mt-1 text-sm text-slate-400">Draft a Procore RFI from the jobsite.</p>
+              </button>
+              <button type="button" class="hero-chip rounded-2xl px-4 py-4 text-left transition hover:border-amber-400/40" data-template="Post a jobsite update to Slack and capture a calendar follow-up for tomorrow.">
+                <p class="font-semibold text-slate-100">Jobsite update</p>
+                <p class="mt-1 text-sm text-slate-400">Publish a construction status update.</p>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <aside class="surface rounded-3xl p-5 sm:p-6 lg:p-7">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-[0.24em] text-amber-300/90">Live response</p>
+              <h3 class="mt-1 text-2xl font-semibold text-white">Actions taken</h3>
+            </div>
+            <div id="install-badge" class="badge badge-offline"><span class="status-dot"></span><span>Installable</span></div>
+          </div>
+          <div id="response-panel" class="mt-5"></div>
+        </aside>
+      </div>
+    </main>
+  </div>
+
+  <script src="/js/app.js" type="module"></script>
+</body>
+</html>

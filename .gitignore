@@ -1,0 +1,42 @@
+# Build outputs
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+[Ll]ogs/
+
+# .NET / Visual Studio
+.vs/
+*.user
+*.rsuser
+*.suo
+*.userosscache
+*.sln.docstates
+*.ide
+
+# NuGet / packaging
+packages/
+*.nupkg
+*.snupkg
+
+# Test artifacts
+TestResults/
+coverage/
+*.coverage
+*.coveragexml
+
+# Local app configuration and secrets
+appsettings.*.local.json
+appsettings.Local.json
+.env
+.env.*
+secrets.json
+
+# ASP.NET Core / web assets
+wwwroot/lib/
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.log

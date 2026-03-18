@@ -1,0 +1,8 @@
+Add rate limiting, sanitization, logging, test endpoints, and production-aware auth
+
+- Rate limiting: per-IP middleware for /api/* (configurable RateLimit:PerMinute)
+- Input sanitization: InputSanitizer for query/userId (max length, control chars)
+- Logging: structured logs in ForemanController; permission boundary comments for judges
+- Demo endpoints: GET /api/test/google and /api/test/procore (demo-only)
+- app.js: production-aware token refresh with retry, 401/429/network handling, no token logging
+- Full appsettings.json, User Secrets (UserSecretsId), README with setup and blog
