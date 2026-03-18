@@ -57,8 +57,6 @@ public sealed class RateLimitingMiddleware
             {
                 if (now - w.Start > _window)
                     return new WindowCount(now, 1);
-                if (w.Count >= _perWindow)
-                    return w;
                 return new WindowCount(w.Start, w.Count + 1);
             });
 
@@ -68,6 +66,7 @@ public sealed class RateLimitingMiddleware
             return true;
         }
 
+        // Allow only when count is within limit; after increment, 61st request has count 61 so we deny.
         return entry.Count <= _perWindow;
     }
 

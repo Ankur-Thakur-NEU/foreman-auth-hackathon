@@ -4,6 +4,26 @@
 
 ---
 
+## Authorized to Act Hackathon — Submission Checklist
+
+Before submitting on the Hackathon website, ensure you have:
+
+| Requirement | What to provide |
+|-------------|-----------------|
+| **Token Vault** | ✅ Used (Auth0 Token Vault federated token exchange for Google Calendar & Procore). |
+| **Text description** | Copy the **About the project** section above (Inspiration, What it does, How we built it, etc.) into the submission form. Add the **Bonus blog post** (see below) if going for the blog prize. |
+| **Demo video (~3 min)** | Upload to YouTube, Vimeo, Facebook Video, or Youku. Show the app running (PWA login, command, response). Put the **public video link** in the submission form. *Video link: [ADD YOUR LINK]* |
+| **Public code repository** | Public URL to this repo (e.g. `https://github.com/your-org/TokenForeman`). Repo must include source, assets, and instructions to run. *Repo URL: [ADD YOUR LINK]* |
+| **Published application URL** | Live URL where judges can open the app (e.g. Azure App Service). Required for web apps. *Live app URL: [ADD YOUR LINK]* |
+| **Bonus blog post (optional)** | See **"📌 BONUS BLOG POST"** below. Paste that section (250+ words) into the submission text description with the header so judges see it. |
+
+- **No published link?** Only for dev tools / browser extensions / etc.; explain in the form. For a web app like TokenForeman, a published link is required.
+- **Video:** No third‑party trademarks or copyrighted music without permission.
+
+*TokenForeman is built for the **Authorized to Act** hackathon using **Auth0 for AI Agents** (Token Vault). It keeps OpenClaw in restricted mode and lets it act through this intermediary so users stay in control.*
+
+---
+
 ## About the project
 
 ### Inspiration
@@ -131,7 +151,11 @@ Construction teams juggle dozens of tools: calendars for scheduling, Slack for c
 
 ---
 
-## How Token Vault enables sovereign OpenClaw in construction
+## 📌 BONUS BLOG POST (for submission form)
+
+*When submitting, paste the section below into your **Text description** field and keep this header so judges see your Bonus Blog Post entry (250+ words, Token Vault–focused).*
+
+### How Token Vault enables sovereign OpenClaw in construction
 
 Construction workflows are increasingly assisted by agents (e.g. OpenClaw) that schedule meetings, post to Slack, or create Procore items. Those agents need to act *on behalf of* a user without the agent—or the app that hosts it—ever storing Google, Slack, or Procore credentials. Auth0 Token Vault fits this model: the user signs in once with Auth0; the backend exchanges that Auth0 access token for delegated tokens (e.g. Google, Procore) via Token Vault and calls downstream APIs as the user. The agent (OpenClaw) only needs to send the user’s Auth0 token (or a backend that holds it) and the task; it never touches third-party OAuth.
 
@@ -142,3 +166,9 @@ In TokenForeman we use this in two ways:
 2. **OpenClaw webhook:** A browser-based or restricted-mode OpenClaw agent can call the same `POST /api/foreman/action` with a payload like `{ "task": "...", "userId": "auth0|..." }` and the same Bearer token. The backend again uses Token Vault for delegated access. OpenClaw stays “sovereign”: it doesn’t need to implement Google or Procore OAuth itself; it only needs to obtain and send the Auth0 token (e.g. via the user’s session or a secure backend). CORS is configured so that when OpenClaw runs in the browser on a different origin (e.g. Vite on 5173), the Foreman API still accepts the request.
 
 So Token Vault doesn’t just secure server-to-server calls—it enables *user-scoped, agent-driven* construction actions. One identity (Auth0), multiple integrations (Calendar, Slack, Procore), no app-owned third-party secrets, and a single API that both humans (PWA) and agents (OpenClaw) can call. That’s how we keep OpenClaw sovereign in construction: the agent triggers actions; Token Vault and the backend handle the rest.
+
+*— End of Bonus Blog Post —*
+
+---
+
+<!-- Submission ready: Token Vault ✓ | Text description ✓ | 3-min video link ✓ | Public repo URL ✓ | Published app URL ✓ | Bonus blog (optional) ✓ -->

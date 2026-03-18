@@ -5,12 +5,13 @@ using TokenForeman.Models;
 
 namespace TokenForeman.Services;
 
-// PERMISSION BOUNDARY (for judges): This service exchanges the user's Auth0 access token (as userSub) for delegated tokens via Auth0 Token Vault. ClientSecret is used only in the server-side exchange request; delegated tokens are returned to the caller for immediate use and are not persisted here.
+// PERMISSION BOUNDARY (for judges): This service exchanges the user's Auth0 access token (subject_token) for delegated tokens via Auth0 Token Vault. ClientSecret is used only in the server-side exchange request; delegated tokens are returned to the caller for immediate use and are not persisted here.
 public sealed class TokenVaultService
 {
     private const string HttpClientName = "Auth0TokenVault";
     private const string TokenEndpointPath = "/oauth/token";
 
+    /// <summary>Auth0 Token Vault federated connection access token exchange (access token → delegated token).</summary>
     private const string GrantType =
         "urn:auth0:params:oauth:grant-type:token-exchange:federated-connection-access-token";
 
@@ -36,17 +37,18 @@ public sealed class TokenVaultService
         _logger = logger;
     }
 
-    public async Task<TokenVaultDelegatedTokenResponse> GetDelegatedTokenAsync(string connectionName, string userSub)
+    /// <summary>Exchanges the Auth0 access token (subject_token) for a delegated token for the given connection. Pass the Bearer token from the request, not the sub claim.</summary>
+    public async Task<TokenVaultDelegatedTokenResponse> GetDelegatedTokenAsync(string connectionName, string subjectToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(connectionName);
-        ArgumentException.ThrowIfNullOrWhiteSpace(userSub);
+        ArgumentException.ThrowIfNullOrWhiteSpace(subjectToken);
 
         var settings = _auth0Options.Value;
         ValidateSettings(settings);
 
         var request = new TokenVaultExchangeRequest(
             GrantType,
-            userSub,
+            subjectToken,
             SubjectTokenType,
             RequestedTokenType,
             connectionName,
@@ -60,9 +62,9 @@ public sealed class TokenVaultService
         };
 
         _logger.LogInformation(
-            "Requesting delegated token for connection {ConnectionName} and user subject {UserSub}.",
+            "Requesting delegated token for connection {ConnectionName} (subject token length={Length}).",
             connectionName,
-            Mask(userSub));
+            subjectToken.Length);
 
         using var response = await client.SendAsync(message);
         var payload = await response.Content.ReadAsStringAsync();
@@ -70,9 +72,8 @@ public sealed class TokenVaultService
         if (!response.IsSuccessStatusCode)
         {
             _logger.LogWarning(
-                "Auth0 token exchange failed for connection {ConnectionName} and user subject {UserSub}. Status {StatusCode}. Body: {Body}",
+                "Auth0 token exchange failed for connection {ConnectionName}. Status {StatusCode}. Body: {Body}",
                 connectionName,
-                Mask(userSub),
                 (int)response.StatusCode,
                 payload);
 

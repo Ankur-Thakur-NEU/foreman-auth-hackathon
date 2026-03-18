@@ -47,7 +47,7 @@ public sealed class AgentService
         ArgumentException.ThrowIfNullOrWhiteSpace(auth0AccessToken);
 
         var userSub = ExtractSubject(auth0AccessToken);
-        var plannedActions = BuildPlan(userQuery, userSub);
+        var plannedActions = BuildPlan(userQuery, userSub, auth0AccessToken);
 
         if (plannedActions.Count == 0)
         {
@@ -114,14 +114,14 @@ public sealed class AgentService
                ?? throw new InvalidOperationException("The Auth0 access token does not contain a sub claim.");
     }
 
-    private List<PlannedAction> BuildPlan(string userQuery, string userSub)
+    private List<PlannedAction> BuildPlan(string userQuery, string userSub, string auth0AccessToken)
     {
         var normalizedQuery = userQuery.Trim();
         var candidates = new List<(int Order, PlannedAction Action)>();
 
         if (TryFindKeywordIndex(normalizedQuery, CalendarKeywords, out var calendarIndex))
         {
-            candidates.Add((calendarIndex, CreateCalendarAction(normalizedQuery, userSub)));
+            candidates.Add((calendarIndex, CreateCalendarAction(normalizedQuery, userSub, auth0AccessToken)));
         }
 
         if (TryFindKeywordIndex(normalizedQuery, SlackKeywords, out var slackIndex))
@@ -131,7 +131,7 @@ public sealed class AgentService
 
         if (TryFindKeywordIndex(normalizedQuery, ProcoreKeywords, out var procoreIndex))
         {
-            candidates.Add((procoreIndex, CreateProcoreAction(normalizedQuery, userSub)));
+            candidates.Add((procoreIndex, CreateProcoreAction(normalizedQuery, userSub, auth0AccessToken)));
         }
 
         return candidates
@@ -140,7 +140,7 @@ public sealed class AgentService
             .ToList();
     }
 
-    private PlannedAction CreateCalendarAction(string userQuery, string userSub)
+    private PlannedAction CreateCalendarAction(string userQuery, string userSub, string auth0AccessToken)
     {
         var summary = Truncate(userQuery, 120);
         var startTime = DateTimeOffset.UtcNow.AddHours(1);
@@ -152,6 +152,7 @@ public sealed class AgentService
             new Dictionary<string, object?>
             {
                 ["userSub"] = userSub,
+                ["auth0AccessToken"] = auth0AccessToken,
                 ["summary"] = summary,
                 ["description"] = userQuery,
                 ["startTime"] = startTime,
@@ -173,7 +174,7 @@ public sealed class AgentService
             });
     }
 
-    private PlannedAction CreateProcoreAction(string userQuery, string userSub)
+    private PlannedAction CreateProcoreAction(string userQuery, string userSub, string auth0AccessToken)
     {
         var itemType = userQuery.Contains("rfi", StringComparison.OrdinalIgnoreCase) ? "rfi" : "task";
 
@@ -183,6 +184,7 @@ public sealed class AgentService
             new Dictionary<string, object?>
             {
                 ["userSub"] = userSub,
+                ["auth0AccessToken"] = auth0AccessToken,
                 ["companyId"] = _configuration["Procore:CompanyId"],
                 ["projectId"] = _configuration["Procore:ProjectId"],
                 ["title"] = Truncate(userQuery, 120),
@@ -280,12 +282,14 @@ public sealed class AgentService
             [Description("Optional description for the calendar event.")]
             string? description = null,
             [Description("Optional IANA time zone name.")]
-            string? timeZone = null)
+            string? timeZone = null,
+            [Description("Auth0 access token for Token Vault exchange (server-only, not logged). Required; do not pass sub claim.")]
+            string? auth0AccessToken = null)
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(userSub);
             ArgumentException.ThrowIfNullOrWhiteSpace(summary);
-
-            var delegatedToken = await _tokenVaultService.GetDelegatedTokenAsync(GoogleCalendarConnectionName, userSub);
+            if (string.IsNullOrWhiteSpace(auth0AccessToken))
+                throw new InvalidOperationException("Auth0 access token is required for Token Vault exchange. The subject_token must be the Bearer token, not the user sub claim.");
+            var delegatedToken = await _tokenVaultService.GetDelegatedTokenAsync(GoogleCalendarConnectionName, auth0AccessToken);
             var client = _httpClientFactory.CreateClient(ForemanHttpClientName);
             var resolvedCalendarId = string.IsNullOrWhiteSpace(calendarId) ? "primary" : calendarId.Trim();
             var resolvedTimeZone = string.IsNullOrWhiteSpace(timeZone) ? "UTC" : timeZone.Trim();
@@ -427,13 +431,15 @@ public sealed class AgentService
             [Description("Optional Procore company identifier.")]
             string? companyId = null,
             [Description("Optional description for the Procore item.")]
-            string? description = null)
+            string? description = null,
+            [Description("Auth0 access token for Token Vault exchange (server-only, not logged). Required; do not pass sub claim.")]
+            string? auth0AccessToken = null)
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(userSub);
             ArgumentException.ThrowIfNullOrWhiteSpace(projectId);
             ArgumentException.ThrowIfNullOrWhiteSpace(title);
-
-            var delegatedToken = await _tokenVaultService.GetDelegatedTokenAsync(ProcoreConnectionName, userSub);
+            if (string.IsNullOrWhiteSpace(auth0AccessToken))
+                throw new InvalidOperationException("Auth0 access token is required for Token Vault exchange. The subject_token must be the Bearer token, not the user sub claim.");
+            var delegatedToken = await _tokenVaultService.GetDelegatedTokenAsync(ProcoreConnectionName, auth0AccessToken);
             var client = _httpClientFactory.CreateClient(ForemanHttpClientName);
             var resolvedType = itemType.Equals("rfi", StringComparison.OrdinalIgnoreCase) ? "rfi" : "task";
             var requestUri = BuildProcoreUri(projectId, companyId, resolvedType);

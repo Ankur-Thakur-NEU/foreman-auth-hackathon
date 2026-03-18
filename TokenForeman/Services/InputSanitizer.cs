@@ -43,7 +43,8 @@ public static class InputSanitizer
         for (var i = 0; i < span.Length; i++)
         {
             var c = span[i];
-            if (c >= ' ' && c != '\u007f' && (c < '\u00a0' || c > '\u009f'))
+            // Keep printable ASCII (32-126, excluding 127 DEL) and non-control Unicode; exclude C0 (0-31), DEL (127), and C1 controls (U+0080..U+009F).
+            if (c >= ' ' && c != '\u007f' && (c < '\u0080' || c > '\u009f'))
                 buffer[write++] = c;
         }
         return write == span.Length ? value : new string(buffer, 0, write);
